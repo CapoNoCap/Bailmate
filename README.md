@@ -1,39 +1,92 @@
-# BailMate
+# 🚔 BailMate
 
-BailMate is a React Native / Expo mobile application designed to connect people seeking bail assistance with licensed bail bond providers in real time.
+> **Real-time bail coordination platform built with React Native, Expo, TypeScript, and Supabase.**
 
-## Features
+BailMate connects individuals seeking bail assistance with licensed bail bond providers through a modern, mobile-first platform designed for speed, transparency, and future AI-assisted workflows.
 
-- Location-based provider discovery
-- Bail bond provider dashboard
-- New leads, contacted leads, closed deals, and monitored clients
-- SMS notification workflow
-- Supabase-ready backend integration
-- React Native / Expo frontend
-- Mobile-first user experience
+---
 
-## Tech Stack
+## Why BailMate?
 
-- React Native
-- Expo Router
-- TypeScript
-- Supabase
-- SMS notifications
-- GitHub / GitHub Desktop
+Finding bail assistance is often stressful and time-sensitive. Traditional methods rely on search engines, static directories, and repeated phone calls.
 
-## Project Status
+BailMate streamlines this process by enabling customers to submit a request once and securely route it to qualified providers.
+
+---
+
+## Current Features
+
+- 📍 Location-aware provider discovery
+- 📨 SMS notification workflow
+- 📱 Mobile-first React Native application
+- 🗄️ Supabase backend integration
+- 📊 Provider lead management
+- 📈 Contacted leads, closed deals, and monitored clients
+- 🏗️ Engineering documentation
+- 🧠 AI-ready architecture
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| Mobile | React Native + Expo |
+| Language | TypeScript |
+| Backend | Supabase |
+| Database | PostgreSQL |
+| Notifications | SMS / Push |
+| Version Control | Git + GitHub |
+
+---
+
+## Repository Structure
+
+```text
+app/
+assets/
+docs/
+adr/
+research/
+whitepapers/
+media/
+```
+
+---
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| Product Brief | Product vision |
+| Architecture | Technical architecture |
+| Database | Data model |
+| API | API design |
+| AI Strategy | AI roadmap |
+| Engineering Decisions | Architectural decisions |
+| Security | Security approach |
+| Testing | Testing strategy |
+| Roadmap | Product roadmap |
+
+---
+
+## Current Status
 
 BailMate is currently in active MVP development.
 
-## Roadmap
+Upcoming milestones include:
 
-- Complete Supabase provider tables
-- Add push notifications
-- Add provider authentication
-- Add analytics dashboard
-- Prepare TestFlight build
-- Submit to the Apple App Store
+- Provider authentication
+- Push notifications
+- Realtime dispatch
+- AI-assisted provider recommendations
+- TestFlight beta
+- App Store launch
+
+---
 
 ## Author
 
-Built by Aeriel Ventrano / Avanté Industries.
+**Aeriel Capo Ventrano**
+
+Built under **Avanté Industries**.
