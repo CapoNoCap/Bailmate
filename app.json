@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "BailMate",
+    "slug": "bailmate",
+    "version": "1.0.0",
+    "orientation": "portrait",
+
+    "ios": {
+      "supportsTablet": true,
+  "infoPlist": {
+    "NSLocationWhenInUseUsageDescription": "BailMate needs your location to match you with nearby providers and monitor municipality geofence alerts.",
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "BailMate needs background location access to monitor municipality geofence alerts even when the app is not open.",
+    "NSLocationAlwaysUsageDescription": "BailMate needs background location access to monitor municipality geofence alerts.",
+    "UIBackgroundModes": ["location"]
+  }
+},
+
+    "icon": "./assets/images/icon.png",
+
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B1F66"
+    },
+
+    "plugins": ["expo-router"],
+
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#0B1F66"
+      }
+    },
+
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    }
+  }
+}

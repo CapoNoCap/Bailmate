@@ -1,0 +1,200 @@
+import { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  FlatList,
+  Alert,
+} from 'react-native';
+import { router } from 'expo-router';
+import { supabase } from '../lib/supabase';
+
+type MonitoredClient = {
+  id: string;
+  provider_id: string | null;
+  user_id: string | null;
+  lead_id: string | null;
+  monitoring_enabled: boolean | null;
+  alert_priority: number | null;
+  subscription_status: string | null;
+  created_at: string;
+  leads?: {
+    requester_name?: string | null;
+    requester_location?: string | null;
+    case_type?: string | null;
+    description?: string | null;
+    lead_status?: string | null;
+  } | null;
+};
+
+export default function MonitoredClientsScreen() {
+  const [loading, setLoading] = useState(true);
+  const [clients, setClients] = useState<MonitoredClient[]>([]);
+
+  useEffect(() => {
+    loadMonitoredClients();
+  }, []);
+
+  async function loadMonitoredClients() {
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from('provider_clients')
+        .select(`
+          *,
+          leads (
+            requester_name,
+            requester_location,
+            case_type,
+            description,
+            lead_status
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setClients((data ?? []) as MonitoredClient[]);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not load monitored clients.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function renderClient({ item }: { item: MonitoredClient }) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>
+          {item.leads?.requester_name || 'Monitored Client'}
+        </Text>
+
+        <Text style={styles.meta}>
+          Case: {item.leads?.case_type || 'Not provided'}
+        </Text>
+
+        <Text style={styles.meta}>
+          Location: {item.leads?.requester_location || 'Not provided'}
+        </Text>
+
+        <Text style={styles.meta}>
+          Monitoring: {item.monitoring_enabled ? 'Enabled' : 'Disabled'}
+        </Text>
+
+        <Text style={styles.meta}>
+          Priority: {item.alert_priority ?? 'Standard'}
+        </Text>
+
+        <Text style={styles.meta}>
+          Subscription: {item.subscription_status || 'Unknown'}
+        </Text>
+
+        <Text style={styles.description}>
+          {item.leads?.description || 'No description provided.'}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>👀 Monitored Clients</Text>
+
+      <Pressable style={styles.refreshButton} onPress={loadMonitoredClients}>
+        <Text style={styles.buttonText}>
+          {loading ? 'Loading...' : 'Refresh'}
+        </Text>
+      </Pressable>
+
+      <FlatList
+        data={clients}
+        keyExtractor={(item) => item.id}
+        renderItem={renderClient}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          !loading ? (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>No Monitored Clients</Text>
+              <Text style={styles.meta}>
+                Clients you are monitoring will appear here.
+              </Text>
+            </View>
+          ) : null
+        }
+      />
+
+      <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Text style={styles.buttonText}>Back to Dashboard</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#E5E7EB',
+    padding: 20,
+  },
+
+  title: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: 'navy',
+    marginBottom: 20,
+  },
+
+  refreshButton: {
+    backgroundColor: '#DC2626',
+    padding: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 16,
+  },
+
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#111827',
+    marginBottom: 10,
+  },
+
+  meta: {
+    fontSize: 16,
+    color: '#374151',
+    marginBottom: 6,
+  },
+
+  description: {
+    fontSize: 15,
+    color: '#4B5563',
+    marginTop: 10,
+  },
+
+  list: {
+    paddingBottom: 100,
+  },
+
+  backButton: {
+    backgroundColor: 'navy',
+    padding: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+
+  buttonText: {
+    color: 'white',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+});
