@@ -1,50 +1,39 @@
-# Welcome to your Expo app 👋
+# BailMate
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+BailMate is a React Native / Expo mobile application designed to connect people seeking bail assistance with licensed bail bond providers in real time.
 
-## Get started
+## Features
 
-1. Install dependencies
+- Location-based provider discovery
+- Bail bond provider dashboard
+- New leads, contacted leads, closed deals, and monitored clients
+- SMS notification workflow
+- Supabase-ready backend integration
+- React Native / Expo frontend
+- Mobile-first user experience
 
-   ```bash
-   npm install
-   ```
+## Tech Stack
 
-2. Start the app
+- React Native
+- Expo Router
+- TypeScript
+- Supabase
+- SMS notifications
+- GitHub / GitHub Desktop
 
-   ```bash
-   npx expo start
-   ```
+## Project Status
 
-In the output, you'll find options to open the app in a
+BailMate is currently in active MVP development.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Roadmap
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- Complete Supabase provider tables
+- Add push notifications
+- Add provider authentication
+- Add analytics dashboard
+- Prepare TestFlight build
+- Submit to the Apple App Store
 
-## Get a fresh project
+## Author
 
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Built by Aeriel Ventrano / Avanté Industries.
