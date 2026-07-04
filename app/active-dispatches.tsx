@@ -1,27 +1,218 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { supabase } from '../lib/supabase';
+
+type DispatchRequest = {
+  id: string;
+  requester_name: string | null;
+  requester_location: string | null;
+  case_type: string | null;
+  description: string | null;
+  status: string | null;
+  created_at: string;
+  lead_id?: string | null;
+  assigned_provider_id?: string | null;
+};
 
 export default function ActiveDispatchesScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🚨 Active Dispatches</Text>
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [dispatches, setDispatches] = useState<DispatchRequest[]>([]);
 
+  useEffect(() => {
+    loadDispatches();
+  }, []);
+
+    useEffect(() => {
+    const channel = supabase
+      .channel('dispatch_requests_live')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'dispatch_requests',
+        },
+        () => {
+          loadDispatches();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  async function loadDispatches() {
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from('dispatch_requests')
+        .select('*')
+        .in('status', ['pending', 'pending_preferred', 'overflow_open'])
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setDispatches((data ?? []) as DispatchRequest[]);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not load dispatches.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadDispatches();
+  }
+
+  async function acceptDispatch(item: DispatchRequest) {
+    try {
+      setLoading(true);
+
+      const { error: dispatchError } = await supabase
+        .from('dispatch_requests')
+        .update({
+          status: 'assigned',
+        })
+        .eq('id', item.id)
+        .in('status', ['pending', 'pending_preferred', 'overflow_open']);
+
+      if (dispatchError) throw dispatchError;
+
+   const { error: createLeadError } = await supabase
+  .from('leads')
+  .insert({
+    requester_name: item.requester_name,
+    requester_location: item.requester_location,
+    case_type: item.case_type,
+    description: item.description,
+    lead_status: 'new',
+    provider_id: 'ba8decb6-b2f0-4656-88ea-f4e54fa75',
+    provider_name: 'Rapid Release Bail Bonds',
+  });
+
+        if (createLeadError) throw createLeadError;
+
+      Alert.alert('Accepted', 'Dispatch moved to New Leads.');
+      await loadDispatches();
+      router.push('/new-leads');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not accept dispatch.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function declineDispatch(id: string) {
+    try {
+      setLoading(true);
+
+      const { error } = await supabase
+        .from('dispatch_requests')
+        .update({
+          status: 'declined',
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      Alert.alert('Declined', 'Dispatch declined.');
+      await loadDispatches();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not decline dispatch.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function renderDispatch({ item }: { item: DispatchRequest }) {
+    return (
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>New Bail Request</Text>
-        <Text style={styles.meta}>Case: DUI</Text>
-        <Text style={styles.meta}>Location: B 911</Text>
-        <Text style={styles.meta}>Status: Pending</Text>
+        <Text style={styles.cardTitle}>🚨 New Bail Request</Text>
+
+        <Text style={styles.meta}>
+          Name: {item.requester_name || 'Not provided'}
+        </Text>
+
+        <Text style={styles.meta}>
+          Case: {item.case_type || 'Not provided'}
+        </Text>
+
+        <Text style={styles.meta}>
+          Location: {item.requester_location || 'Not provided'}
+        </Text>
+
+        <Text style={styles.meta}>
+          Status: {item.status || 'Pending'}
+        </Text>
+
+        <Text style={styles.description}>
+          Notes: {item.description || 'No description provided.'}
+        </Text>
 
         <View style={styles.buttonRow}>
-          <Pressable style={styles.acceptButton}>
+          <Pressable
+            style={styles.acceptButton}
+            onPress={() => acceptDispatch(item)}
+          >
             <Text style={styles.buttonText}>Accept</Text>
           </Pressable>
 
-          <Pressable style={styles.declineButton}>
+          <Pressable
+            style={styles.declineButton}
+            onPress={() => declineDispatch(item.id)}
+          >
             <Text style={styles.buttonText}>Decline</Text>
           </Pressable>
         </View>
       </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>🚨 Active Dispatches</Text>
+
+      <Pressable style={styles.refreshButton} onPress={loadDispatches}>
+        <Text style={styles.buttonText}>
+          {loading ? 'Loading...' : 'Refresh'}
+        </Text>
+      </Pressable>
+
+      {loading && dispatches.length === 0 ? (
+        <ActivityIndicator size="large" color="navy" />
+      ) : (
+        <FlatList
+          data={dispatches}
+          keyExtractor={(item) => item.id}
+          renderItem={renderDispatch}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>No Active Dispatches</Text>
+              <Text style={styles.meta}>Waiting for new requests...</Text>
+            </View>
+          }
+        />
+      )}
 
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.buttonText}>Back to Dashboard</Text>
@@ -36,34 +227,54 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
     padding: 20,
   },
+
   title: {
     fontSize: 30,
     fontWeight: '900',
     color: 'navy',
     marginBottom: 20,
   },
+
+  refreshButton: {
+    backgroundColor: '#DC2626',
+    padding: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
   card: {
     backgroundColor: 'white',
     borderRadius: 18,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 16,
   },
+
   cardTitle: {
     fontSize: 24,
     fontWeight: '900',
     color: '#111827',
     marginBottom: 12,
   },
+
   meta: {
     fontSize: 17,
     color: '#374151',
     marginBottom: 6,
   },
+
+  description: {
+    fontSize: 16,
+    color: '#374151',
+    marginTop: 8,
+  },
+
   buttonRow: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 18,
   },
+
   acceptButton: {
     flex: 1,
     backgroundColor: '#16A34A',
@@ -71,6 +282,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
   },
+
   declineButton: {
     flex: 1,
     backgroundColor: '#DC2626',
@@ -78,15 +290,22 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
   },
+
   backButton: {
     backgroundColor: 'navy',
     padding: 16,
     borderRadius: 14,
     alignItems: 'center',
+    marginTop: 10,
   },
+
   buttonText: {
     color: 'white',
     fontSize: 17,
     fontWeight: '800',
+  },
+
+  list: {
+    paddingBottom: 100,
   },
 });
