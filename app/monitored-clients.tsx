@@ -39,6 +39,26 @@ export default function MonitoredClientsScreen() {
     try {
       setLoading(true);
 
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error('No logged-in provider was found.');
+      }
+
+      const { data: provider, error: providerError } = await supabase
+        .from('providers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (providerError) throw providerError;
+
+      if (!provider) {
+        throw new Error('No provider record is linked to this login.');
+      }
+
       const { data, error } = await supabase
         .from('provider_clients')
         .select(`
@@ -49,6 +69,7 @@ export default function MonitoredClientsScreen() {
     case_type
   )
 `)
+        .eq('provider_id', provider.id)
         .eq('monitoring_enabled', true)
         .order('created_at', { ascending: false });
 

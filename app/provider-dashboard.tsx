@@ -37,8 +37,27 @@ export default function ProviderDashboardScreen() {
 const [dispatchRequests, setDispatchRequests] = useState<any[]>([]);
 const [dispatchLoading, setDispatchLoading] = useState(true);
   useEffect(() => {
-    loadDashboard();
-  }, []);
+  loadDashboard();
+
+  const channel = supabase
+    .channel('provider-dashboard-dispatch-count')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'dispatch_requests',
+      },
+      () => {
+        loadDashboard();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
   const loadDashboard = async () => {
     try {
@@ -48,7 +67,11 @@ const [dispatchLoading, setDispatchLoading] = useState(true);
         data: { user },
       } = await supabase.auth.getUser();
 
-      const userEmail = user?.email ?? '';
+      if (!user) {
+  throw new Error('No logged-in provider was found.');
+}
+
+      const userEmail = user.email ?? '';
       setProviderEmail(userEmail);
 
       if (!userEmail) {
@@ -56,16 +79,16 @@ const [dispatchLoading, setDispatchLoading] = useState(true);
       }
 
       const { data: provider, error: providerError } = await supabase
-        .from('providers')
-        .select('id, name, email')
-        .ilike('email', userEmail)
-        .maybeSingle();
+  .from('providers')
+  .select('id, name, email, user_id')
+  .eq('user_id', user.id)
+  .maybeSingle();
 
       if (providerError) throw providerError;
 
       if (!provider) {
         throw new Error(
-          'No provider record matches this login email. Add the same email to the provider row in Supabase.'
+          'No provider record is linked to this login. Add this user UID to the provider row in Supabase.'
         );
       }
 
@@ -103,6 +126,9 @@ setUnreadCount(count || 0);
 const { data: dispatchData, error: dispatchError } = await supabase
   .from('dispatch_requests')
   .select('*')
+  .or(
+    `status.eq.overflow_open,status.eq.pending,and(status.eq.pending_preferred,preferred_provider_id.eq.${provider.id})`
+  )
   .order('created_at', { ascending: false });
 
 if (dispatchError) {

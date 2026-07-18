@@ -1,13 +1,13 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 
@@ -68,7 +68,12 @@ export default function LoginScreen() {
         onChangeText={setPassword}
         secureTextEntry
       />
-
+<Pressable
+  style={styles.forgotPasswordButton}
+  onPress={() => router.push('/forgot-password')}
+>
+  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+</Pressable>
       <Pressable
         style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleLogin}
@@ -139,4 +144,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
+  forgotPasswordButton: {
+  alignSelf: 'flex-end',
+  paddingVertical: 10,
+  marginBottom: 8,
+},
+
+forgotPasswordText: {
+  color: '#000099',
+  fontSize: 16,
+  fontWeight: '700',
+},
 });

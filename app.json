@@ -2,6 +2,7 @@
   "expo": {
     "name": "BailMate",
     "slug": "bailmate",
+    "scheme": "bailmate",
     "version": "1.0.0",
     "orientation": "portrait",
 

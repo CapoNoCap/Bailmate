@@ -20,22 +20,62 @@ type DispatchRequest = {
   description: string | null;
   status: string | null;
   created_at: string;
-  lead_id?: string | null;
   assigned_provider_id?: string | null;
 };
+
+function buildEligibilityFilter(providerId: string) {
+  return `status.eq.overflow_open,status.eq.pending,and(status.eq.pending_preferred,preferred_provider_id.eq.${providerId})`;
+}
 
 export default function ActiveDispatchesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dispatches, setDispatches] = useState<DispatchRequest[]>([]);
+  const [providerId, setProviderId] = useState<string | null>(null);
+  const [providerName, setProviderName] = useState('Provider');
 
   useEffect(() => {
-    loadDispatches();
+    let active = true;
+
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        Alert.alert('Error', 'No logged-in provider was found.');
+        return;
+      }
+
+      const { data: provider, error } = await supabase
+        .from('providers')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!active) return;
+
+      if (error || !provider) {
+        Alert.alert('Error', 'No provider record is linked to this login.');
+        return;
+      }
+
+      setProviderId(provider.id);
+      setProviderName(provider.name || 'Provider');
+    })();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-    useEffect(() => {
+  useEffect(() => {
+    if (!providerId) return;
+
+    loadDispatches(providerId);
+
     const channel = supabase
-      .channel('dispatch_requests_live')
+      .channel('dispatch-live')
       .on(
         'postgres_changes',
         {
@@ -44,7 +84,7 @@ export default function ActiveDispatchesScreen() {
           table: 'dispatch_requests',
         },
         () => {
-          loadDispatches();
+          loadDispatches(providerId);
         }
       )
       .subscribe();
@@ -52,16 +92,16 @@ export default function ActiveDispatchesScreen() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [providerId]);
 
-  async function loadDispatches() {
+  async function loadDispatches(pid: string) {
     try {
       setLoading(true);
 
       const { data, error } = await supabase
         .from('dispatch_requests')
         .select('*')
-        .in('status', ['pending', 'pending_preferred', 'overflow_open'])
+        .or(buildEligibilityFilter(pid))
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -76,40 +116,51 @@ export default function ActiveDispatchesScreen() {
   }
 
   async function onRefresh() {
+    if (!providerId) return;
     setRefreshing(true);
-    await loadDispatches();
+    await loadDispatches(providerId);
   }
 
   async function acceptDispatch(item: DispatchRequest) {
+    if (!providerId) return;
+
     try {
       setLoading(true);
 
-      const { error: dispatchError } = await supabase
+      const { data: claimed, error: dispatchError } = await supabase
         .from('dispatch_requests')
         .update({
           status: 'assigned',
+          assigned_provider_id: providerId,
         })
         .eq('id', item.id)
-        .in('status', ['pending', 'pending_preferred', 'overflow_open']);
+        .or(buildEligibilityFilter(providerId))
+        .select();
 
       if (dispatchError) throw dispatchError;
 
-   const { error: createLeadError } = await supabase
-  .from('leads')
-  .insert({
-    requester_name: item.requester_name,
-    requester_location: item.requester_location,
-    case_type: item.case_type,
-    description: item.description,
-    lead_status: 'new',
-    provider_id: 'ba8decb6-b2f0-4656-88ea-f4e54fa75',
-    provider_name: 'Rapid Release Bail Bonds',
-  });
+      if (!claimed || claimed.length === 0) {
+        Alert.alert('Already claimed', 'This dispatch was already accepted by another provider.');
+        await loadDispatches(providerId);
+        return;
+      }
 
-        if (createLeadError) throw createLeadError;
+      const { error: createLeadError } = await supabase
+        .from('leads')
+        .insert({
+          requester_name: item.requester_name,
+          requester_location: item.requester_location,
+          case_type: item.case_type,
+          description: item.description,
+          lead_status: 'new',
+          provider_id: providerId,
+          provider_name: providerName,
+        });
+
+      if (createLeadError) throw createLeadError;
 
       Alert.alert('Accepted', 'Dispatch moved to New Leads.');
-      await loadDispatches();
+      await loadDispatches(providerId);
       router.push('/new-leads');
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Could not accept dispatch.');
@@ -132,7 +183,7 @@ export default function ActiveDispatchesScreen() {
       if (error) throw error;
 
       Alert.alert('Declined', 'Dispatch declined.');
-      await loadDispatches();
+      if (providerId) await loadDispatches(providerId);
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Could not decline dispatch.');
     } finally {
@@ -188,7 +239,7 @@ export default function ActiveDispatchesScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>🚨 Active Dispatches</Text>
 
-      <Pressable style={styles.refreshButton} onPress={loadDispatches}>
+      <Pressable style={styles.refreshButton} onPress={onRefresh}>
         <Text style={styles.buttonText}>
           {loading ? 'Loading...' : 'Refresh'}
         </Text>

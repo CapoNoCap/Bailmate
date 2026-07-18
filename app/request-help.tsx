@@ -26,48 +26,38 @@ export default function RequestHelpScreen() {
   const needAttorney = String(params.needAttorney ?? 'false') === 'true';
 
 const handleSubmit = async () => {
+  if (submitting) return;
   try {
     setSubmitting(true);
 
-    const { error } = await supabase
-      .from('leads')
-      .insert([
-        {
-          provider_id: providerId,
-          provider_name: providerName,
-          requester_name: name,
-          requester_location: `${location} ${zipCode}`.trim(),
-          case_type: caseType,
-          description,
-          need_bail: needBail,
-          need_attorney: needAttorney,
-          lead_status: 'new',
-        },
-      ]);
+   const { data: authData } = await supabase.auth.getUser();
+const currentUser = authData.user;
+
+const priorityWindowExpiresAt = new Date(
+  Date.now() + 3 * 60 * 1000
+).toISOString();
+
+const { error } = await supabase
+  .from('dispatch_requests')
+  .insert({
+    requester_name: name || null,
+    requester_location: `${location} ${zipCode}`.trim() || null,
+    case_type: caseType || null,
+    description: description || null,
+    preferred_provider_id: providerId || null,
+    status: providerId ? 'pending_preferred' : 'overflow_open',
+    priority_window_expires_at: providerId
+      ? priorityWindowExpiresAt
+      : new Date().toISOString(),
+    user_id: currentUser?.id ?? null,
+  });
 
     if (error) {
       throw error;
     }
 const { data: userData } = await supabase.auth.getUser();
 
-const { error: dispatchError } = await supabase
-  .from('dispatch_requests')
-  .insert({
-    user_id: userData.user?.id,
-    preferred_provider_id: providerId,
-    requester_name: name,
-    requester_location: `${location} ${zipCode}`.trim(),
-    case_type: caseType,
-    description,
-    status: 'pending_preferred',
-    priority_window_expires_at: new Date(
-      Date.now() + 3 * 60 * 1000
-    ).toISOString(),
-  });
 
-if (dispatchError) {
-  throw dispatchError;
-}
     try {
       const { error: smsError } = await supabase.functions.invoke(
         'send-provider-sms',

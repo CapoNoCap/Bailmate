@@ -30,11 +30,11 @@ export default function SuccessScreen() {
       </Pressable>
 
       <Pressable
-        style={styles.secondaryButton}
-        onPress={() => router.back()}
-      >
-        <Text style={styles.secondaryButtonText}>Back</Text>
-      </Pressable>
+  style={styles.secondaryButton}
+  onPress={() => router.replace('/')}
+>
+  <Text style={styles.secondaryButtonText}>Home</Text>
+</Pressable>
     </View>
   );
 }

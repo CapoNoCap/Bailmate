@@ -26,11 +26,32 @@ export default function NewLeadsScreen() {
     try {
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from('leads')
-        .select('*')
-        .or('lead_status.eq.new,lead_status.is.null')
-        .order('created_at', { ascending: false });
+     const {
+  data: { user },
+} = await supabase.auth.getUser();
+
+if (!user) {
+  throw new Error('No logged-in provider was found.');
+}
+
+const { data: provider, error: providerError } = await supabase
+  .from('providers')
+  .select('id')
+  .eq('user_id', user.id)
+  .maybeSingle();
+
+if (providerError) throw providerError;
+
+if (!provider) {
+  throw new Error('No provider record is linked to this login.');
+}
+
+const { data, error } = await supabase
+  .from('leads')
+  .select('*')
+  .eq('provider_id', provider.id)
+  .or('lead_status.eq.new,lead_status.is.null')
+  .order('created_at', { ascending: false });
 
       if (error) throw error;
 
