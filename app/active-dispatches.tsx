@@ -127,37 +127,18 @@ export default function ActiveDispatchesScreen() {
     try {
       setLoading(true);
 
-      const { data: claimed, error: dispatchError } = await supabase
-        .from('dispatch_requests')
-        .update({
-          status: 'assigned',
-          assigned_provider_id: providerId,
-        })
-        .eq('id', item.id)
-        .or(buildEligibilityFilter(providerId))
-        .select();
+      const { data: claimed, error: acceptError } = await supabase.rpc(
+        'accept_dispatch',
+        { p_dispatch_id: item.id }
+      );
 
-      if (dispatchError) throw dispatchError;
+      if (acceptError) throw acceptError;
 
       if (!claimed || claimed.length === 0) {
         Alert.alert('Already claimed', 'This dispatch was already accepted by another provider.');
         await loadDispatches(providerId);
         return;
       }
-
-      const { error: createLeadError } = await supabase
-        .from('leads')
-        .insert({
-          requester_name: item.requester_name,
-          requester_location: item.requester_location,
-          case_type: item.case_type,
-          description: item.description,
-          lead_status: 'new',
-          provider_id: providerId,
-          provider_name: providerName,
-        });
-
-      if (createLeadError) throw createLeadError;
 
       Alert.alert('Accepted', 'Dispatch moved to New Leads.');
       await loadDispatches(providerId);
